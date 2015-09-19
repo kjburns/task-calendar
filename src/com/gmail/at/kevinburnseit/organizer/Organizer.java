@@ -9,10 +9,14 @@ import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog.ResultEnum;
 import com.gmail.at.kevinburnseit.organizer.gui.DataFolderDialog;
+import com.gmail.at.kevinburnseit.organizer.gui.StandardWorkWeekEditor;
 import com.gmail.at.kevinburnseit.swing.DialogResult;
 
 /**
@@ -30,9 +34,16 @@ public class Organizer extends JFrame {
 
 	private String appDataPath =
 			System.getProperty("user.home") + File.separator + ".organizer";
+	private StandardWorkWeek workSchedule;
 	private boolean initialSetupComplete = false;
 	
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+				| UnsupportedLookAndFeelException e) {
+			e.printStackTrace();
+		}
 		Organizer org = new Organizer();
 		org.setVisible(true);
 	}
@@ -57,7 +68,8 @@ public class Organizer extends JFrame {
 				try {
 					saveSettings();
 				} catch (BackingStoreException e1) {
-					// TODO Auto-generated catch block
+					JOptionPane.showMessageDialog(Organizer.this, 
+							"Could not save persistent settings.");
 					e1.printStackTrace();
 				}
 			}
@@ -84,7 +96,48 @@ public class Organizer extends JFrame {
 		}
 		dfd.dispose();
 		
-		return false;
+		StandardWorkWeekEditor swwe = new StandardWorkWeekEditor(this);
+		for (;;) {
+			DialogResult result = swwe.showDialog();
+			if (result == DialogResult.OK) break;
+			
+			AbortOrContinueSetupDialog d = new AbortOrContinueSetupDialog();
+			for (;;) {
+				d.showDialog();
+				if (d.getResult() == null) continue;
+				break;
+			}
+			
+			if (d.getResult() == ResultEnum.STOP) {
+				swwe.dispose();
+				return false;
+			}
+		}
+		swwe.dispose();
+		
+		File folder = new File(this.appDataPath);
+		if (!folder.exists()) {
+			folder.mkdir();
+		}
+		
+		File workScheduleFile = new File(folder, "schedule.xml");
+		try {
+			this.workSchedule.saveToXmlFile(workScheduleFile.getAbsolutePath());
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, "Couldn't save work schedule to disk.");
+			return false;
+		}
+
+		this.initialSetupComplete = true;
+		try {
+			this.saveSettings();
+		} catch (BackingStoreException e) {
+			JOptionPane.showMessageDialog(null, "Couldn't save persistent settings.");
+			e.printStackTrace();
+			return false;
+		}
+
+		return true;
 	}
 
 	/*
@@ -103,6 +156,7 @@ public class Organizer extends JFrame {
 		if (!this.initialSetupComplete) return;
 		
 		Preferences p = Preferences.userNodeForPackage(Organizer.class);
+		p.putBoolean(STG_initialSetupComplete, true);
 		p.put(STG_appDataPath, this.appDataPath);
 		p.flush();
 	}
@@ -127,5 +181,19 @@ public class Organizer extends JFrame {
 	 */
 	public void setAppDataPath(String appDataPath) {
 		this.appDataPath = appDataPath;
+	}
+
+	/**
+	 * @return the workSchedule
+	 */
+	public StandardWorkWeek getWorkSchedule() {
+		return workSchedule;
+	}
+
+	/**
+	 * @param workSchedule the workSchedule to set
+	 */
+	public void setWorkSchedule(StandardWorkWeek workSchedule) {
+		this.workSchedule = workSchedule;
 	}
 }

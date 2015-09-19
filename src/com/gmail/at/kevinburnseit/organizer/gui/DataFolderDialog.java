@@ -23,7 +23,9 @@ public class DataFolderDialog extends NewDialog {
 		IS_NOT_DIRECTORY("Selection is not a folder."),
 		PARENT_DNE("Parent of proposed folder does not exist."),
 		PARENT_READ_ONLY("Parent of proposed folder is read-only."),
-		PARENT_IS_NOT_DIRECTORY("Parent of proposed folder is not a folder.");
+		PARENT_IS_NOT_DIRECTORY("Parent of proposed folder is not a folder."),
+		EMPTY("Folder path cannot be empty."),
+		ILLEGAL("Path name is not valid.");
 		
 		private String message;
 		
@@ -44,6 +46,14 @@ public class DataFolderDialog extends NewDialog {
 			new ValidatingTextBoxValidator() {
 		@Override
 		public boolean validate(String newValue) {
+			if (newValue == null) {
+				pathFailureReason = FolderValidationFailReasonEnum.EMPTY;
+				return false;
+			}
+			if (newValue.trim().length() == 0) {
+				pathFailureReason = FolderValidationFailReasonEnum.EMPTY;
+				return false;
+			}
 			File f = new File(newValue);
 			
 			if (f.exists()) {
@@ -59,6 +69,10 @@ public class DataFolderDialog extends NewDialog {
 			}
 			
 			File parent = f.getParentFile();
+			if (parent == null) {
+				pathFailureReason = FolderValidationFailReasonEnum.PARENT_DNE;
+				return false;
+			}
 			if (!parent.exists()) {
 				pathFailureReason = FolderValidationFailReasonEnum.PARENT_DNE;
 				return false;
@@ -94,6 +108,7 @@ public class DataFolderDialog extends NewDialog {
 	private void buildUI() {
 		BoxLayout layout = new BoxLayout(this.contentPanel, BoxLayout.PAGE_AXIS);
 		this.contentPanel.setLayout(layout);
+		this.setTitle("Select Data Storage Folder");
 		
 		JLabel label = new JLabel("Select folder to store program data:");
 		this.contentPanel.add(label);
