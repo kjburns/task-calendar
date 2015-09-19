@@ -108,6 +108,9 @@ public class Organizer extends JFrame {
 	}
 
 	/**
+	 * Gets the folder that the user selected to store application data for this
+	 * program, or the default value ([home]/.organizer) if the user hasn't selected
+	 * a location.
 	 * @return the appDataPath
 	 */
 	public String getAppDataPath() {
@@ -115,7 +118,12 @@ public class Organizer extends JFrame {
 	}
 
 	/**
-	 * @param appDataPath the appDataPath to set
+	 * Sets the folder to store application data for this program. This function will
+	 * attempt to save this value in the java settings database, but if the user
+	 * has not yet completed initial setup, it will not be saved in the prefs
+	 * database.
+	 * @param appDataPath the path in which data for this application should be
+	 * stored.
 	 */
 	public void setAppDataPath(String appDataPath) {
 		this.appDataPath = appDataPath;
