@@ -1,21 +1,29 @@
 package com.gmail.at.kevinburnseit.organizer;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
+import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog.ResultEnum;
 import com.gmail.at.kevinburnseit.organizer.gui.DataFolderDialog;
+import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel;
+import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel.MenuLabelAction;
+import com.gmail.at.kevinburnseit.organizer.gui.MenuPane;
 import com.gmail.at.kevinburnseit.organizer.gui.StandardWorkWeekEditor;
 import com.gmail.at.kevinburnseit.swing.DialogResult;
 
@@ -36,6 +44,7 @@ public class Organizer extends JFrame {
 			System.getProperty("user.home") + File.separator + ".organizer";
 	private StandardWorkWeek workSchedule;
 	private boolean initialSetupComplete = false;
+	private static final String scheduleFilename = "schedule.xml";
 	
 	public static void main(String[] args) {
 		try {
@@ -74,8 +83,70 @@ public class Organizer extends JFrame {
 				}
 			}
 		});
+		
+		this.loadNecessaryFiles();
+		
+		this.buildUI();
 	}
 	
+	private void loadNecessaryFiles() {
+		try {
+			this.loadWorkSchedule();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(this, "Could not load work schedule from file.");
+		}
+	}
+
+	private void buildUI() {
+		GridBagLayout layout = new GridBagLayout();
+		this.getContentPane().setLayout(layout);
+		
+		MenuPane menu = new MenuPane(this);
+		menu.setBorder(BorderFactory.createLineBorder(Color.black));
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 0;
+//		c.gridheight = GridBagConstraints.REMAINDER;
+		c.anchor = GridBagConstraints.NORTHWEST;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 0.2;
+		c.weighty = 1;
+		this.getContentPane().add(menu, c);
+		
+		MenuLabel workDayLabel = new MenuLabel("Define Work Day...");
+		workDayLabel.addClickListener(new MenuLabelAction() {
+			@Override
+			public void itemClicked(MenuLabel source) {
+				StandardWorkWeekEditor swwe = 
+						new StandardWorkWeekEditor(Organizer.this);
+				if (swwe.showDialog() == DialogResult.OK) {
+					try {
+						Organizer.this.saveWorkSchedule();
+					} catch (Exception e) {
+						JOptionPane.showMessageDialog(Organizer.this, 
+								"Could not write work schedule to disk.");
+					}
+				}
+				swwe.dispose();
+			}
+		});
+		menu.add(workDayLabel);
+		
+//		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
+//		menu.add(externalCalendarsLabel);
+		
+		JPanel calendarFiller = new JPanel();
+		c = new GridBagConstraints();
+		c.gridx = 1;
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		this.getContentPane().add(calendarFiller, c);
+		
+		this.pack();
+	}
+
 	private boolean doInitialSetup() {
 		DataFolderDialog dfd = new DataFolderDialog(this);
 		for (;;) {
@@ -120,7 +191,7 @@ public class Organizer extends JFrame {
 			folder.mkdir();
 		}
 		
-		File workScheduleFile = new File(folder, "schedule.xml");
+		File workScheduleFile = new File(folder, scheduleFilename);
 		try {
 			this.workSchedule.saveToXmlFile(workScheduleFile.getAbsolutePath());
 		} catch (Exception e) {
@@ -195,5 +266,15 @@ public class Organizer extends JFrame {
 	 */
 	public void setWorkSchedule(StandardWorkWeek workSchedule) {
 		this.workSchedule = workSchedule;
+	}
+	
+	private void loadWorkSchedule() throws Exception {
+		File f = new File(this.getAppDataPath(), Organizer.scheduleFilename);
+		this.workSchedule = new StandardWorkWeek(f.getAbsolutePath());
+	}
+	
+	private void saveWorkSchedule() throws Exception {
+		File f = new File(this.getAppDataPath(), Organizer.scheduleFilename);
+		this.workSchedule.saveToXmlFile(f.getAbsolutePath());
 	}
 }

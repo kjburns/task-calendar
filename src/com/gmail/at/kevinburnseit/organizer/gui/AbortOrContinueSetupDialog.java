@@ -19,6 +19,9 @@ public class AbortOrContinueSetupDialog extends NewDialog {
 	private static final long serialVersionUID = 6513938602185369799L;
 	private ResultEnum result = null;
 	
+	/*
+	 * FIXME the variable-width buttons can be fixed with a gridbaglayout
+	 */
 	public AbortOrContinueSetupDialog() {
 		this.setTitle("Setup Not Complete");
 		BoxLayout layout = new BoxLayout(this.contentPanel, BoxLayout.PAGE_AXIS);
