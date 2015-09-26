@@ -1,4 +1,4 @@
-package com.gmail.at.kevinburnseit.organizer;
+package com.gmail.at.kevinburnseit.swing.calendar;
 
 /**
  * Contains helpful information about timekeeping that I can't find already written

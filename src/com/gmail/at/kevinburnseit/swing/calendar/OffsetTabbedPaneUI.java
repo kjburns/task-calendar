@@ -1,4 +1,4 @@
-package com.gmail.at.kevinburnseit.swing;
+package com.gmail.at.kevinburnseit.swing.calendar;
 
 import java.awt.Insets;
 

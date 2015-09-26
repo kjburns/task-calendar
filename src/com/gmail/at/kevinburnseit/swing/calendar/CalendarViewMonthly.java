@@ -1,4 +1,4 @@
-package com.gmail.at.kevinburnseit.organizer.gui;
+package com.gmail.at.kevinburnseit.swing.calendar;
 
 import java.awt.Color;
 import java.awt.GridLayout;
@@ -16,16 +16,23 @@ import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 
-import com.gmail.at.kevinburnseit.organizer.CalendarHelper;
-
 /**
- * A calendar view which displays a full month.
+ * A calendar view which displays a full month. This view starts each week with
+ * Monday and ends each week with Sunday. Days in adjacent months are not shown.
  * @author Kevin J. Burns
  *
  */
 public class CalendarViewMonthly extends CalendarView {
 	private static final long serialVersionUID = 4124782752255800387L;
 	
+	/**
+	 * An empty calendar cell. This is required for the cells before the first day
+	 * of the month because the calendar view is laid out with a GridLayout, and
+	 * there is no way to place the first element anywhere other than the first
+	 * cell in the GridLayout. 
+	 * @author Kevin J. Burns
+	 *
+	 */
 	private class EmptyDay extends Day {
 		private static final long serialVersionUID = -4028745004518438010L;
 		
@@ -36,6 +43,11 @@ public class CalendarViewMonthly extends CalendarView {
 		}
 	}
 	
+	/**
+	 * A visual calendar cell with a day number in it.
+	 * @author Kevin J. Burns
+	 *
+	 */
 	private class Day extends JPanel {
 		private static final long serialVersionUID = 5898330689560812820L;
 		
@@ -47,6 +59,14 @@ public class CalendarViewMonthly extends CalendarView {
 		private final Border selectedBorder =
 				BorderFactory.createLineBorder(Color.decode("#8080ff"), 3);
 		
+		/**
+		 * Constructor. Creates a new calendar cell with the specified day number.
+		 * @param day The day number. Only pass positive numbers if you intend this
+		 * to act as a date. Nonpositive numbers will result in most of the 
+		 * functionality being disabled. However, this object is rather agnostic
+		 * to the month that it is part of, so there is no real upper limit, although
+		 * there are certainly practical limits.
+		 */
 		public Day(int day) {
 			this.day = day;
 			
@@ -68,13 +88,21 @@ public class CalendarViewMonthly extends CalendarView {
 				@Override
 				public void mouseClicked(MouseEvent e) {
 					if (SwingUtilities.isLeftMouseButton(e)) {
-						deselectCurrentDate();
-						selectDayThisMonth(day);
+						if (Day.this.day > 0) {
+							deselectCurrentDate();
+							selectDayThisMonth(day);
+						}
 					}
 				}
 			});
 		}
 
+		/**
+		 * Causes this day to appear to be selected or unselected. However, apart
+		 * from the visual effects, there is no underlying binding here.
+		 * @param state <code>true</code> if this day is to appear selected;
+		 * <code>false</code> otherwise.
+		 */
 		public void setSelected(boolean state) {
 			if (state) {
 				this.setBorder(this.selectedBorder);
@@ -209,11 +237,25 @@ public class CalendarViewMonthly extends CalendarView {
 		this.calWidget.setSelectedDate(this.calWidget.getSelectedDate());
 	}
 	
-	protected void deselectCurrentDate() {
+	/**
+	 * A convenience function which examines the currently selected date on the
+	 * calendar widget and unselects that day on this view. It is expected that
+	 * this function will be called after the user has moved to select another
+	 * date, but the new selected date hasn't been registered with the
+	 * calendar widget yet.
+	 */
+	protected final void deselectCurrentDate() {
 		int dy = this.calWidget.getSelectedDate().get(Calendar.DAY_OF_MONTH);
 		this.dayPanels.get(dy).setSelected(false);
 	}
 	
+	/**
+	 * A convenience function which selects a day in the displayed month on the
+	 * calendar widget and shows that day as being selected on this view.
+	 * @param dy Day of the month. While no error checking is performed, it is
+	 * important that this parameter actually represent a day that exists in the
+	 * displayed month. 
+	 */
 	protected void selectDayThisMonth(int dy) {
 		GregorianCalendar c = new GregorianCalendar();
 		c.set(this.startOfVisibleRange.get(Calendar.YEAR), 

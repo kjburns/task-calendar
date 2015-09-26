@@ -20,13 +20,13 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog.ResultEnum;
-import com.gmail.at.kevinburnseit.organizer.gui.CalendarWidget;
 import com.gmail.at.kevinburnseit.organizer.gui.DataFolderDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel.MenuLabelAction;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuPane;
 import com.gmail.at.kevinburnseit.organizer.gui.StandardWorkWeekEditor;
 import com.gmail.at.kevinburnseit.swing.DialogResult;
+import com.gmail.at.kevinburnseit.swing.calendar.CalendarWidget;
 
 /**
  * The main application window for this application.
@@ -136,7 +136,7 @@ public class Organizer extends JFrame {
 //		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
 //		menu.add(externalCalendarsLabel);
 
-		CalendarWidget cal = new CalendarWidget(this);
+		CalendarWidget cal = new CalendarWidget();
 		c = new GridBagConstraints();
 		c.gridx = 1;
 		c.gridy = 0;
