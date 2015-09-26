@@ -12,7 +12,8 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 /**
- * A Swing widget which shows a calendar.
+ * A Swing widget which shows a calendar. By default, this includes a monthly and
+ * a weekly view, but these default views can be removed.
  * @author Kevin J. Burns
  *
  */
@@ -33,6 +34,57 @@ public class CalendarWidget extends JPanel {
 	 */
 	public CalendarWidget() {
 		this.buildUI();
+	}
+	
+	/**
+	 * Adds a new view to this calendar widget.
+	 * @param view The view to add. If null, nothing will happen.
+	 */
+	public void addCalendarView(CalendarView view) {
+		if (view == null) return;
+		
+		JTabbedPane jtabs = this.tabs.getJTabbedPane();
+		
+		jtabs.add(view.getDisplayName(), view);
+		
+		this.refreshView(view);
+	}
+	
+	/**
+	 * <b>This function still needs to be coded.</b> The intent of this function is
+	 * to get the view to update itself with the contents of all attached
+	 * calendar models.
+	 * @param view The view to update
+	 */
+	protected final void refreshView(CalendarView view) {
+		// TODO Auto-generated method stub
+	}
+
+	/**
+	 * Removes an existing view from this calendar widget.
+	 * @param view The view to remove. If null, nothing will happen.
+	 */
+	public void removeCalendarView(CalendarView view) {
+		if (view == null) return;
+		
+		JTabbedPane jtabs = this.tabs.getJTabbedPane();
+		jtabs.remove(view);
+	}
+	
+	/**
+	 * Removes the default monthly view.
+	 */
+	public final void removeDefaultMonthlyView() {
+		this.removeCalendarView(this.monthCal);
+		this.monthCal = null;
+	}
+	
+	/**
+	 * Removes the default weekly view.
+	 */
+	public final void removeDefaultWeeklyView() {
+		this.removeCalendarView(this.weekCal);
+		this.weekCal = null;
 	}
 	
 	private void buildUI() {
