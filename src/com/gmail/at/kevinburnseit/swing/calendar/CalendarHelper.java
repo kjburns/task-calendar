@@ -1,5 +1,10 @@
 package com.gmail.at.kevinburnseit.swing.calendar;
 
+import java.util.ArrayList;
+
+import javax.swing.ComboBoxModel;
+import javax.swing.event.ListDataListener;
+
 /**
  * Contains helpful information about timekeeping that I can't find already written
  * somewhere else.
@@ -12,6 +17,8 @@ public class CalendarHelper {
 	public static final String[] monthsOfYear =
 		{ "January", "February", "March", "April", "May", "June", "July", "August",
 				"September", "October", "November", "December" };
+	
+	private static ComboBoxModel<String> monthModel = null; 
 	/**
 	 * Returns the number of days in a month.
 	 * @param month Month number in the range [0, 11] (following Calendar class's
@@ -41,5 +48,54 @@ public class CalendarHelper {
 		default:
 			return 0;
 		}
+	}
+	
+	public static ComboBoxModel<String> getComboBoxModelOfMonths() {
+		if (CalendarHelper.monthModel != null) return CalendarHelper.monthModel;
+		
+		monthModel = new ComboBoxModel<String>() {
+			private ArrayList<ListDataListener> listeners = new ArrayList<>();
+			private int selectedIndex = 0;
+			
+			@Override
+			public void addListDataListener(ListDataListener l) {
+				this.listeners.add(l);
+			}
+			@Override
+			public String getElementAt(int index) {
+				return CalendarHelper.monthsOfYear[index];
+			}
+			@Override
+			public int getSize() {
+				return 12;
+			}
+			@Override
+			public void removeListDataListener(ListDataListener l) {
+				this.listeners.remove(l);
+			}
+			@Override
+			public Object getSelectedItem() {
+				return this.getElementAt(this.selectedIndex);
+			}
+			@Override
+			public void setSelectedItem(Object item) {
+				if (item == null) {
+					this.selectedIndex = -1;
+					return;
+				}
+				
+				for (int i = 0; i < 12; i++) {
+					if (item.equals(CalendarHelper.monthsOfYear[i])) {
+						this.selectedIndex = i;
+						return;
+					}
+				}
+				
+				this.selectedIndex = -1;
+				return;
+			}
+		};
+		
+		return monthModel;
 	}
 }

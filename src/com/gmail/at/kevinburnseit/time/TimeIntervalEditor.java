@@ -61,7 +61,6 @@ public class TimeIntervalEditor extends NewDialog implements
 		this.populate();
 	}
 
-	@Override
 	public void init() {
 		this.setTitle("Edit time interval");
 		this.setResizable(false);

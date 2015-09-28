@@ -14,13 +14,13 @@ import java.util.prefs.Preferences;
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog.ResultEnum;
 import com.gmail.at.kevinburnseit.organizer.gui.DataFolderDialog;
+import com.gmail.at.kevinburnseit.organizer.gui.HolidayListEditor;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel.MenuLabelAction;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuPane;
@@ -44,6 +44,7 @@ public class Organizer extends JFrame {
 	private String appDataPath =
 			System.getProperty("user.home") + File.separator + ".organizer";
 	private StandardWorkWeek workSchedule;
+	private HolidayRuleCollection holidays = new HolidayRuleCollection();
 	private boolean initialSetupComplete = false;
 	private static final String scheduleFilename = "schedule.xml";
 	
@@ -94,7 +95,15 @@ public class Organizer extends JFrame {
 		try {
 			this.loadWorkSchedule();
 		} catch (Exception e) {
-			JOptionPane.showMessageDialog(this, "Could not load work schedule from file.");
+			JOptionPane.showMessageDialog(this, 
+					"Could not load work schedule from file.");
+		}
+		
+		try {
+			this.loadHolidaysFromDisk();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(this, 
+					"Could not load holidays from file.");
 		}
 	}
 
@@ -132,6 +141,23 @@ public class Organizer extends JFrame {
 			}
 		});
 		menu.add(workDayLabel);
+		
+		MenuLabel holidayLabel = new MenuLabel("Holidays...");
+		holidayLabel.addClickListener(new MenuLabelAction() {
+			@Override
+			public void itemClicked(MenuLabel source) {
+				HolidayListEditor ed = new HolidayListEditor(holidays);
+				ed.showDialog();
+				try {
+					saveHolidaysToDisk();
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(null, 
+							"Unable to save holidays to disk.");
+				}
+				ed.dispose();
+			}
+		});
+		menu.add(holidayLabel);
 		
 //		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
 //		menu.add(externalCalendarsLabel);
@@ -277,5 +303,20 @@ public class Organizer extends JFrame {
 	private void saveWorkSchedule() throws Exception {
 		File f = new File(this.getAppDataPath(), Organizer.scheduleFilename);
 		this.workSchedule.saveToXmlFile(f.getAbsolutePath());
+	}
+
+	private void saveHolidaysToDisk() throws Exception {
+		File f = new File(Organizer.this.getAppDataPath(), "holidays.xml");
+		this.holidays.saveToXml(f.getAbsolutePath());
+	}
+	
+	private void loadHolidaysFromDisk() throws Exception {
+		File f = new File(Organizer.this.getAppDataPath(), "holidays.xml");
+		if (!f.exists()) {
+			this.holidays = new HolidayRuleCollection();
+		}
+		else {
+			this.holidays = HolidayRuleCollection.fromXmlFile(f.getAbsolutePath());
+		}
 	}
 }
