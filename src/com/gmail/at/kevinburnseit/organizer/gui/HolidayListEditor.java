@@ -8,6 +8,7 @@ import javax.swing.JOptionPane;
 
 import com.gmail.at.kevinburnseit.organizer.HolidayRule;
 import com.gmail.at.kevinburnseit.organizer.HolidayRuleCollection;
+import com.gmail.at.kevinburnseit.organizer.HolidayRuleRelative;
 import com.gmail.at.kevinburnseit.organizer.Organizer;
 import com.gmail.at.kevinburnseit.records.CollectionEditor;
 import com.gmail.at.kevinburnseit.records.RecordEditor;
@@ -47,15 +48,26 @@ public class HolidayListEditor extends CollectionEditor<HolidayRule> {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int index = HolidayListEditor.this.listBox.getSelectedIndex();
+				HolidayRule rule = rules.get(index);
+				if (rule instanceof HolidayRuleRelative) {
+					HolidayEditorRelative ed = new HolidayEditorRelative(rules);
+					ed.setData((HolidayRuleRelative)rule);
+					if (ed.showDialog() == DialogResult.OK) {
+						rules.set(index, ed.getOutput());
+					}
+					ed.dispose();
+					return;
+				}
 				try {
 					@SuppressWarnings("unchecked")
 					RecordEditor<HolidayRule> editor = 
 							(RecordEditor<HolidayRule>)
-								rules.get(index).getEditorClass().newInstance();
-					editor.setData(rules.get(index));
+								rule.getEditorClass().newInstance();
+					editor.setData(rule);
 					if (editor.showDialog() == DialogResult.OK) {
 						rules.set(index, editor.getOutput());
 					}
+					editor.dispose();
 				} catch (InstantiationException e1) {
 					e1.printStackTrace();
 				} catch (IllegalAccessException e1) {

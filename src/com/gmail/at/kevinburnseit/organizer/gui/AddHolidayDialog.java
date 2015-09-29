@@ -66,11 +66,15 @@ public class AddHolidayDialog extends NewDialog {
 		this.relativeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				
+				HolidayEditorRelative her = new HolidayEditorRelative(rules);
+				if (her.showDialog() == DialogResult.OK) {
+					rules.add(her.getOutput());
+				}
+				her.dispose();
+				setVisible(false);
 			}
 		});
-		this.relativeButton.setEnabled(false);
+		this.relativeButton.setEnabled(rules.size() > 0);
 		
 		this.cancelBtn = this.addButton(
 				"Cancel", DialogResult.CANCEL, ButtonTypeEnum.CANCEL);

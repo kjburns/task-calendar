@@ -5,6 +5,7 @@ import java.util.GregorianCalendar;
 
 import org.w3c.dom.Element;
 
+import com.gmail.at.kevinburnseit.organizer.gui.HolidayEditorRelative;
 import com.gmail.at.kevinburnseit.records.Record;
 import com.gmail.at.kevinburnseit.records.RecordEditor;
 import com.gmail.at.kevinburnseit.xml.XmlElementWriter;
@@ -29,8 +30,7 @@ public class HolidayRuleRelative extends HolidayRule {
 
 	@Override
 	public Class<? extends RecordEditor<? extends Record>> getEditorClass() {
-		// TODO Auto-generated method stub
-		return null;
+		return HolidayEditorRelative.class;
 	}
 
 	@Override

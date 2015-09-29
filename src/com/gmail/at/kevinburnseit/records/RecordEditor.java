@@ -22,4 +22,5 @@ public interface RecordEditor<T> {
 	 * @param input Data to be used to seed the dialog.
 	 */
 	void setData(T input);
+	void dispose();
 }
