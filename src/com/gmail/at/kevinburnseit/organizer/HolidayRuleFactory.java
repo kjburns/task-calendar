@@ -28,6 +28,28 @@ public class HolidayRuleFactory {
 			return "[0, 11]";
 		}
 	};
+	private static final AttributeValidator<Integer> dayOfWeekValidator =
+			new AttributeValidator<Integer>() {
+		@Override
+		public boolean validate(Integer value) {
+			return ((value >= 0) && (value <= 6));
+		}
+		@Override
+		public String getAcceptableRange() {
+			return "[0, 6]";
+		}
+	};
+	private static final AttributeValidator<Integer> dayOfWeekInMonthValidator =
+			new AttributeValidator<Integer>() {
+		@Override
+		public boolean validate(Integer value) {
+			return ((value >= 1) && (value <= HolidayRuleNthDay.LAST_OCCURENCE));
+		}
+		@Override
+		public String getAcceptableRange() {
+			return "[1, " + HolidayRuleNthDay.LAST_OCCURENCE + "]";
+		}
+	};
 	
 	private static final class DayValidator implements AttributeValidator<Integer> {
 		int month;
@@ -103,6 +125,18 @@ public class HolidayRuleFactory {
 					this.holidayExistsValidator);
 			ret.setReference(this.collection.getByName(refName));
 			ret.setDaysAfterReference(r.getRequiredIntAttribute("days-after"));
+			
+			return ret;
+		}
+		if (HolidayRuleNthDay.ruleType.equals(type)) {
+			HolidayRuleNthDay ret = new HolidayRuleNthDay();
+			ret.setName(name);
+			ret.setAlwaysObservedOnWeekday(weekdayOnly);
+			ret.setDayOfWeek(r.getRequiredIntAttribute("day-of-week", 
+					dayOfWeekValidator));
+			ret.setMonth(r.getRequiredIntAttribute("month", monthValidator));
+			ret.setWhichOccurence(r.getRequiredIntAttribute("which", 
+					dayOfWeekInMonthValidator));
 			
 			return ret;
 		}
