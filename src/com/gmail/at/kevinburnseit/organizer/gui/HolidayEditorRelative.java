@@ -18,6 +18,7 @@ import com.gmail.at.kevinburnseit.records.RecordEditor;
 import com.gmail.at.kevinburnseit.swing.ComboBoxModelAdapter;
 import com.gmail.at.kevinburnseit.swing.DialogResult;
 import com.gmail.at.kevinburnseit.swing.NewDialog;
+import com.gmail.at.kevinburnseit.swing.RowControl;
 import com.gmail.at.kevinburnseit.swing.ValidatingTextBox;
 import com.gmail.at.kevinburnseit.swing.ValidatingTextBoxExpectsNonEmptyString;
 import com.gmail.at.kevinburnseit.swing.ValidatingTextBoxExpectsPositiveInteger;

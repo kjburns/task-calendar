@@ -18,7 +18,8 @@ public class CalendarHelper {
 		{ "January", "February", "March", "April", "May", "June", "July", "August",
 				"September", "October", "November", "December" };
 	
-	private static ComboBoxModel<String> monthModel = null; 
+	private static ComboBoxModel<String> monthModel = null;
+	private static ComboBoxModel<String> dayOfWeekModel = null;
 	/**
 	 * Returns the number of days in a month.
 	 * @param month Month number in the range [0, 11] (following Calendar class's
@@ -97,5 +98,54 @@ public class CalendarHelper {
 		};
 		
 		return monthModel;
+	}
+	
+	public static ComboBoxModel<String> getComboBoxModelOfDaysOfWeek() {
+		if (CalendarHelper.dayOfWeekModel != null) return CalendarHelper.dayOfWeekModel;
+
+		dayOfWeekModel = new ComboBoxModel<String>() {
+			private ArrayList<ListDataListener> listeners = new ArrayList<>();
+			private int selectedIndex = 0;
+
+			@Override
+			public void addListDataListener(ListDataListener l) {
+				this.listeners.add(l);
+			}
+			@Override
+			public String getElementAt(int index) {
+				return CalendarHelper.daysOfWeek[index];
+			}
+			@Override
+			public int getSize() {
+				return 7;
+			}
+			@Override
+			public void removeListDataListener(ListDataListener l) {
+				this.listeners.remove(l);
+			}
+			@Override
+			public Object getSelectedItem() {
+				return this.getElementAt(this.selectedIndex);
+			}
+			@Override
+			public void setSelectedItem(Object item) {
+				if (item == null) {
+					this.selectedIndex = -1;
+					return;
+				}
+
+				for (int i = 0; i < 7; i++) {
+					if (item.equals(CalendarHelper.daysOfWeek[i])) {
+						this.selectedIndex = i;
+						return;
+					}
+				}
+
+				this.selectedIndex = -1;
+				return;
+			}
+		};
+
+		return dayOfWeekModel;
 	}
 }

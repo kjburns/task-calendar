@@ -5,6 +5,7 @@ import java.util.GregorianCalendar;
 
 import org.w3c.dom.Element;
 
+import com.gmail.at.kevinburnseit.organizer.gui.HolidayEditorNthDay;
 import com.gmail.at.kevinburnseit.records.Record;
 import com.gmail.at.kevinburnseit.records.RecordEditor;
 import com.gmail.at.kevinburnseit.xml.XmlElementWriter;
@@ -28,8 +29,16 @@ public class HolidayRuleNthDay extends HolidayRule {
 		ret.clear();
 		ret.set(Calendar.YEAR, year);
 		ret.set(Calendar.MONTH, this.month);
-		// this program uses Monday = 0, so must convert to Monday = 2
-		ret.set(Calendar.DAY_OF_WEEK, (this.dayOfWeek + 2) % 7);
+		/* this program uses Monday = 0, so must convert to Monday = 2
+		 *               M T W R F S U
+		 * This program  0 1 2 3 4 5 6
+		 * Java Calendar 2 3 4 5 6 7 1
+		 */
+		int javaDOW = (this.dayOfWeek + 2) % 7;
+		if (javaDOW == 0) {
+			javaDOW = 7;
+		}
+		ret.set(Calendar.DAY_OF_WEEK, javaDOW);
 		ret.set(Calendar.DAY_OF_WEEK_IN_MONTH, this.whichOccurence);
 		if (this.whichOccurence == HolidayRuleNthDay.LAST_OCCURENCE) {
 			// whichOccurence could have been 'last'; resolve this
@@ -42,8 +51,7 @@ public class HolidayRuleNthDay extends HolidayRule {
 
 	@Override
 	public Class<? extends RecordEditor<? extends Record>> getEditorClass() {
-		// TODO Auto-generated method stub
-		return null;
+		return HolidayEditorNthDay.class;
 	}
 
 	@Override

@@ -55,11 +55,13 @@ public class AddHolidayDialog extends NewDialog {
 		this.nthDayOfWeekButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				
+				HolidayEditorNthDay hend = new HolidayEditorNthDay();
+				if (hend.showDialog() == DialogResult.OK) {
+					rules.add(hend.getOutput());
+				}
+				hend.dispose();
 			}
 		});
-		this.nthDayOfWeekButton.setEnabled(false);
 		
 		this.relativeButton = this.addButton(
 				"Defined by another holiday >", null, ButtonTypeEnum.NONE);

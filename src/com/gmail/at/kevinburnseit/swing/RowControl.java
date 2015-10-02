@@ -1,4 +1,4 @@
-package com.gmail.at.kevinburnseit.organizer.gui;
+package com.gmail.at.kevinburnseit.swing;
 
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
