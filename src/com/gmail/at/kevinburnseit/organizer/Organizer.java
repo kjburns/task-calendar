@@ -20,6 +20,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog.ResultEnum;
 import com.gmail.at.kevinburnseit.organizer.gui.DataFolderDialog;
+import com.gmail.at.kevinburnseit.organizer.gui.DaysOffListEditor;
 import com.gmail.at.kevinburnseit.organizer.gui.HolidayListEditor;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel.MenuLabelAction;
@@ -45,6 +46,7 @@ public class Organizer extends JFrame {
 			System.getProperty("user.home") + File.separator + ".organizer";
 	private StandardWorkWeek workSchedule;
 	private HolidayRuleCollection holidays = new HolidayRuleCollection();
+	private DaysOffList daysOff = new DaysOffList();
 	private boolean initialSetupComplete = false;
 	private static final String scheduleFilename = "schedule.xml";
 	
@@ -105,6 +107,19 @@ public class Organizer extends JFrame {
 			JOptionPane.showMessageDialog(this, 
 					"Could not load holidays from file.");
 		}
+		
+		try {
+			this.loadDaysOffFromDisk();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(this, "Could not load days off from file.");
+		}
+	}
+
+	private void loadDaysOffFromDisk() throws Exception {
+		File f = new File(this.appDataPath, "days-off.xml");
+		if (!f.exists()) return;
+		
+		this.daysOff = new DaysOffList(f.getAbsolutePath());
 	}
 
 	private void buildUI() {
@@ -151,13 +166,29 @@ public class Organizer extends JFrame {
 				try {
 					saveHolidaysToDisk();
 				} catch (Exception e) {
-					JOptionPane.showMessageDialog(null, 
+					JOptionPane.showMessageDialog(Organizer.this, 
 							"Unable to save holidays to disk.");
 				}
 				ed.dispose();
 			}
 		});
 		menu.add(holidayLabel);
+		
+		MenuLabel daysOffLabel = new MenuLabel("Days off...");
+		daysOffLabel.addClickListener(new MenuLabelAction() {
+			@Override
+			public void itemClicked(MenuLabel source) {
+				DaysOffListEditor dole = new DaysOffListEditor(daysOff);
+				dole.showDialog();
+				try {
+					saveDaysOffToDisk();
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(Organizer.this, 
+							"Unable to save days off to disk.");
+				}
+			}
+		});
+		menu.add(daysOffLabel);
 		
 //		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
 //		menu.add(externalCalendarsLabel);
@@ -303,6 +334,11 @@ public class Organizer extends JFrame {
 	private void saveWorkSchedule() throws Exception {
 		File f = new File(this.getAppDataPath(), Organizer.scheduleFilename);
 		this.workSchedule.saveToXmlFile(f.getAbsolutePath());
+	}
+	
+	private void saveDaysOffToDisk() throws Exception {
+		File f = new File(Organizer.this.getAppDataPath(), "days-off.xml");
+		this.daysOff.saveToXml(f.getAbsolutePath());
 	}
 
 	private void saveHolidaysToDisk() throws Exception {
