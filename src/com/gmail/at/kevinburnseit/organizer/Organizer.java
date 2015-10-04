@@ -8,6 +8,9 @@ import java.awt.GridBagLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -28,13 +31,15 @@ import com.gmail.at.kevinburnseit.organizer.gui.MenuPane;
 import com.gmail.at.kevinburnseit.organizer.gui.StandardWorkWeekEditor;
 import com.gmail.at.kevinburnseit.swing.DialogResult;
 import com.gmail.at.kevinburnseit.swing.calendar.CalendarWidget;
+import com.gmail.at.kevinburnseit.swing.calendar.DailyScheduleProvider;
 
 /**
  * The main application window for this application.
  * @author Kevin J. Burns
  *
  */
-public class Organizer extends JFrame {
+public class Organizer extends JFrame
+		implements DailyScheduleProvider {
 	/**
 	 * 
 	 */
@@ -49,6 +54,8 @@ public class Organizer extends JFrame {
 	private DaysOffList daysOff = new DaysOffList();
 	private boolean initialSetupComplete = false;
 	private static final String scheduleFilename = "schedule.xml";
+	private ArrayList<DailyScheduleListener> scheduleListeners = new ArrayList<>();
+	private CalendarWidget calendarWidget;
 	
 	public static void main(String[] args) {
 		try {
@@ -91,6 +98,13 @@ public class Organizer extends JFrame {
 		this.loadNecessaryFiles();
 		
 		this.buildUI();
+		
+		this.addScheduleListener(new DailyScheduleListener() {
+			@Override
+			public void dailyScheduleChanged(DailyScheduleProvider sched) {
+				calendarWidget.rebuildAllCalendars();
+			}
+		});
 	}
 	
 	private void loadNecessaryFiles() {
@@ -151,6 +165,7 @@ public class Organizer extends JFrame {
 						JOptionPane.showMessageDialog(Organizer.this, 
 								"Could not write work schedule to disk.");
 					}
+					notifyScheduleListeners();
 				}
 				swwe.dispose();
 			}
@@ -169,6 +184,7 @@ public class Organizer extends JFrame {
 					JOptionPane.showMessageDialog(Organizer.this, 
 							"Unable to save holidays to disk.");
 				}
+				notifyScheduleListeners();
 				ed.dispose();
 			}
 		});
@@ -186,6 +202,8 @@ public class Organizer extends JFrame {
 					JOptionPane.showMessageDialog(Organizer.this, 
 							"Unable to save days off to disk.");
 				}
+				notifyScheduleListeners();
+				dole.dispose();
 			}
 		});
 		menu.add(daysOffLabel);
@@ -193,14 +211,15 @@ public class Organizer extends JFrame {
 //		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
 //		menu.add(externalCalendarsLabel);
 
-		CalendarWidget cal = new CalendarWidget();
+		this.calendarWidget = new CalendarWidget();
+		calendarWidget.setScheduleProvider(this);
 		c = new GridBagConstraints();
 		c.gridx = 1;
 		c.gridy = 0;
 		c.weightx = 1;
 		c.weighty = 1;
 		c.fill = GridBagConstraints.BOTH;
-		this.getContentPane().add(cal, c);
+		this.getContentPane().add(calendarWidget, c);
 		
 		this.pack();
 	}
@@ -353,6 +372,69 @@ public class Organizer extends JFrame {
 		}
 		else {
 			this.holidays = HolidayRuleCollection.fromXmlFile(f.getAbsolutePath());
+		}
+	}
+
+	@Override
+	public boolean isAtWorkOn(GregorianCalendar date) {
+		if (this.daysOff.contains(new DateRecord(date.getTime()))) return false;
+		if (this.holidays.isHoliday(date)) return false;
+		
+		DayEnum dow = getDayOfWeek(date);
+		return this.workSchedule.get(dow).isWorkingToday();
+	}
+
+	private DayEnum getDayOfWeek(GregorianCalendar date) {
+		int javaDOW = date.get(Calendar.DAY_OF_WEEK);
+		int dow = javaDOW - 2;
+		if (dow < 0) {
+			dow += 7;
+		}
+		return DayEnum.values()[dow];
+	}
+
+	@Override
+	public boolean isTakingLunchOn(GregorianCalendar date) {
+		DayEnum dow = this.getDayOfWeek(date);
+		return this.workSchedule.get(dow).isTakingLunchToday();
+	}
+
+	@Override
+	public int getWorkStartTime(GregorianCalendar date) {
+		DayEnum dow = this.getDayOfWeek(date);
+		return this.workSchedule.get(dow).getStartTime();
+	}
+
+	@Override
+	public int getWorkEndTime(GregorianCalendar date) {
+		DayEnum dow = this.getDayOfWeek(date);
+		return this.workSchedule.get(dow).getEndTime();
+	}
+
+	@Override
+	public int getLunchStartTime(GregorianCalendar date) {
+		DayEnum dow = this.getDayOfWeek(date);
+		return this.workSchedule.get(dow).getLunchTime();
+	}
+
+	@Override
+	public int getLunchEndTime(GregorianCalendar date) {
+		DayEnum dow = this.getDayOfWeek(date);
+		StandardWorkDay workDay = this.workSchedule.get(dow);
+		return workDay.getLunchTime() + workDay.getLunchDurationMinutes() * 60;
+	}
+	
+	public void addScheduleListener(DailyScheduleListener l) {
+		this.scheduleListeners.add(l);
+	}
+	
+	public void removeScheduleListener(DailyScheduleListener l) {
+		this.scheduleListeners.remove(l);
+	}
+	
+	private void notifyScheduleListeners() {
+		for (DailyScheduleListener l : this.scheduleListeners) {
+			l.dailyScheduleChanged(this);
 		}
 	}
 }

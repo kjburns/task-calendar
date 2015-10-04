@@ -35,9 +35,7 @@ public class DateSelectorDialog extends NewDialog implements RecordEditor<DateRe
 		this.contentPanel.setLayout(new GridLayout(1, 1));
 		
 		this.datePicker = new DatePicker();
-//		this.datePicker.setMinimumSize(new Dimension(300, 200));
 		this.contentPanel.add(datePicker);
-//		this.contentScrollPane.setMinimumSize(new Dimension(300, 300));
 		
 		this.okBtn = this.addButton("OK", DialogResult.OK, ButtonTypeEnum.DEFAULT);
 		ActionListener closeListener = new ActionListener() {

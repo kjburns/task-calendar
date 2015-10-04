@@ -9,6 +9,9 @@ import java.util.GregorianCalendar;
  *
  */
 public interface DailyScheduleProvider {
+	public interface DailyScheduleListener {
+		void dailyScheduleChanged(DailyScheduleProvider sched);
+	}
 	/**
 	 * Returns whether the user is scheduled to be at work on the supplied day.
 	 * @param date Date in question

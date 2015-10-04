@@ -1,6 +1,9 @@
 package com.gmail.at.kevinburnseit.swing.calendar;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 import javax.swing.ComboBoxModel;
 import javax.swing.event.ListDataListener;
@@ -147,5 +150,29 @@ public class CalendarHelper {
 		};
 
 		return dayOfWeekModel;
+	}
+	
+	public static boolean areDatesEqual(Date x, Date y) {
+		GregorianCalendar gcx = new GregorianCalendar();
+		gcx.setTime(x);
+		
+		GregorianCalendar gcy = new GregorianCalendar();
+		gcy.setTime(y);
+		
+		return areDatesEqual(gcx, gcy);
+	}
+	
+	public static boolean areDatesEqual(GregorianCalendar x, GregorianCalendar y) {
+		if (x.get(Calendar.YEAR) != y.get(Calendar.YEAR)) {
+			return false;
+		}
+		if (x.get(Calendar.MONTH) != y.get(Calendar.MONTH)) {
+			return false;
+		}
+		if (x.get(Calendar.DAY_OF_MONTH) != y.get(Calendar.DAY_OF_MONTH)) {
+			return false;
+		}
+		
+		return true;
 	}
 }

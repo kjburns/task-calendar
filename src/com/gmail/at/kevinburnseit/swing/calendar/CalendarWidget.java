@@ -59,6 +59,16 @@ public class CalendarWidget extends JPanel {
 	protected final void refreshView(CalendarView view) {
 		// TODO Auto-generated method stub
 	}
+	
+	/**
+	 * Notifies all calendar views to refresh themselves.
+	 */
+	public void rebuildAllCalendars() {
+		for (Component c : this.tabs.getJTabbedPane().getComponents()) {
+			if (!(c instanceof CalendarView)) continue;
+			((CalendarView)c).recalculateVisibleRange();
+		}
+	}
 
 	/**
 	 * Removes an existing view from this calendar widget.
@@ -183,6 +193,11 @@ public class CalendarWidget extends JPanel {
 	 */
 	public void setScheduleProvider(DailyScheduleProvider scheduleProvider) {
 		this.scheduleProvider = scheduleProvider;
+		for (Component c : this.tabs.getJTabbedPane().getComponents()) {
+			if (!(c instanceof CalendarView)) continue;
+			
+			((CalendarView)c).recalculateVisibleRange();
+		}
 	}
 
 	/**

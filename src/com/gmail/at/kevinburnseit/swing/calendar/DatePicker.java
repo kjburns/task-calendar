@@ -16,10 +16,9 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
-
-import com.gmail.at.kevinburnseit.swing.RowControl;
 
 /**
  * A widget that allows the user to select a date on a calendar-grid interface.
@@ -75,6 +74,7 @@ public class DatePicker extends JPanel {
 
 	private GregorianCalendar selectedDate = new GregorianCalendar();
 	private JLabel monthLabel;
+	private JPanel topArea;
 	private JPanel gridArea;
 	private HashMap<Integer, Day> dayPanels = new HashMap<>();
 	
@@ -83,16 +83,33 @@ public class DatePicker extends JPanel {
 	 */
 	public DatePicker() {
 		this.buildUI();
+		this.removeTimeFromSelectedDate();
+	}
+
+	private void removeTimeFromSelectedDate() {
+		this.selectedDate.set(Calendar.HOUR, 0);
+		this.selectedDate.set(Calendar.MINUTE, 0);
+		this.selectedDate.set(Calendar.SECOND, 0);
+		this.selectedDate.set(Calendar.MILLISECOND, 0);
 	}
 
 	private void buildUI() {
 		BorderLayout bl = new BorderLayout();
 		this.setLayout(bl);
 		
-		RowControl rc = new RowControl();
-		this.add(rc, BorderLayout.PAGE_START);
+		this.topArea = new JPanel();
+		this.add(topArea, BorderLayout.PAGE_START);
+		SpringLayout sl = new SpringLayout();
+		this.topArea.setLayout(sl);
+		sl.putConstraint(SpringLayout.EAST, this.topArea, 
+				250, SpringLayout.WEST, this.topArea);
+		
 		JButton prevYearButton = new JButton("<<");
-		rc.add(prevYearButton);
+		this.topArea.add(prevYearButton);
+		sl.putConstraint(SpringLayout.WEST, prevYearButton, 
+				0, SpringLayout.WEST, this.topArea);
+		sl.putConstraint(SpringLayout.NORTH, prevYearButton, 
+				0, SpringLayout.NORTH, this.topArea);
 		prevYearButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -102,7 +119,11 @@ public class DatePicker extends JPanel {
 		});
 		
 		JButton prevMonthButton = new JButton("<");
-		rc.add(prevMonthButton);
+		this.topArea.add(prevMonthButton);
+		sl.putConstraint(SpringLayout.WEST, prevMonthButton, 0, 
+				SpringLayout.EAST, prevYearButton);
+		sl.putConstraint(SpringLayout.NORTH, prevMonthButton, 0, 
+				SpringLayout.NORTH, this.topArea);
 		prevMonthButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -112,10 +133,14 @@ public class DatePicker extends JPanel {
 		});
 		
 		this.monthLabel = new JLabel("Month Name In 2015");
-		rc.add(monthLabel);
+		this.topArea.add(monthLabel);
+		sl.putConstraint(SpringLayout.WEST, this.monthLabel, 0, 
+				SpringLayout.EAST, prevMonthButton);
+		sl.putConstraint(SpringLayout.NORTH, this.monthLabel, 0, 
+				SpringLayout.NORTH, this.topArea);
 		
 		JButton nextMonthButton = new JButton(">");
-		rc.add(nextMonthButton);
+		this.topArea.add(nextMonthButton);
 		nextMonthButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -125,7 +150,7 @@ public class DatePicker extends JPanel {
 		});
 		
 		JButton nextYearButton = new JButton(">>");
-		rc.add(nextYearButton);
+		this.topArea.add(nextYearButton);
 		nextYearButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -133,6 +158,17 @@ public class DatePicker extends JPanel {
 				updateCalendar();
 			}
 		});
+		
+		sl.putConstraint(SpringLayout.EAST, nextYearButton, 0, 
+				SpringLayout.EAST, this.topArea);
+		sl.putConstraint(SpringLayout.NORTH, nextYearButton, 0, 
+				SpringLayout.NORTH, this.topArea);
+		sl.putConstraint(SpringLayout.EAST, nextMonthButton, 0, 
+				SpringLayout.WEST, nextYearButton);
+		sl.putConstraint(SpringLayout.NORTH, nextMonthButton, 0, 
+				SpringLayout.NORTH, this.topArea);
+		sl.putConstraint(SpringLayout.SOUTH, this.topArea, 0, 
+				SpringLayout.SOUTH, nextYearButton);
 		
 		this.gridArea = new JPanel();
 		this.gridArea.setLayout(new GridLayout(0, 7));
@@ -198,6 +234,7 @@ public class DatePicker extends JPanel {
 	 */
 	public final void setSelectedDate(GregorianCalendar selectedDate) {
 		this.selectedDate = selectedDate;
+		this.removeTimeFromSelectedDate();
 		this.updateCalendar();
 	}
 	
@@ -207,6 +244,7 @@ public class DatePicker extends JPanel {
 	 */
 	public final void setSelectedDate(Date date) {
 		this.selectedDate.setTime(date);
+		this.removeTimeFromSelectedDate();
 		this.updateCalendar();
 	}
 }

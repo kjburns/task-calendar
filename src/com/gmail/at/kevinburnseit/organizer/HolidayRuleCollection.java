@@ -1,11 +1,14 @@
 package com.gmail.at.kevinburnseit.organizer;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import com.gmail.at.kevinburnseit.records.ArrayListWithListModel;
+import com.gmail.at.kevinburnseit.swing.calendar.CalendarHelper;
 import com.gmail.at.kevinburnseit.xml.XmlElementReader;
 import com.gmail.at.kevinburnseit.xml.XmlHelper;
 
@@ -71,5 +74,23 @@ public class HolidayRuleCollection extends ArrayListWithListModel<HolidayRule> {
 		}
 		
 		return null;
+	}
+
+	/**
+	 * Examines a date and determines if that date is a holiday based on the holiday
+	 * rules programmed here.
+	 * @param date Date to examine
+	 * @return <code>true</code> if this the supplied date is observed as a holiday;
+	 * <code>false</code> otherwise.
+	 */
+	public boolean isHoliday(GregorianCalendar date) {
+		int year = date.get(Calendar.YEAR);
+		for (HolidayRule rule : this) {
+			GregorianCalendar obsDate = rule.getObservedDateOfHoliday(year);
+			if (CalendarHelper.areDatesEqual(obsDate, date)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

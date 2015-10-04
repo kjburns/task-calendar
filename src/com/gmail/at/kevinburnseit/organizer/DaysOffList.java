@@ -2,12 +2,15 @@ package com.gmail.at.kevinburnseit.organizer;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import com.gmail.at.kevinburnseit.records.ArrayListWithListModel;
+import com.gmail.at.kevinburnseit.swing.calendar.CalendarHelper;
 import com.gmail.at.kevinburnseit.xml.XmlElementReader;
 import com.gmail.at.kevinburnseit.xml.XmlElementWriter;
 import com.gmail.at.kevinburnseit.xml.XmlHelper;
@@ -62,5 +65,21 @@ public class DaysOffList extends ArrayListWithListModel<DateRecord> {
 		}
 		
 		XmlHelper.saveFile(doc, path);
+	}
+
+	/* (non-Javadoc)
+	 * @see java.util.ArrayList#contains(java.lang.Object)
+	 */
+	@Override
+	public boolean contains(Object o) {
+		if (o == null) return false;
+		if (!(o instanceof DateRecord)) return false;
+		
+		DateRecord find = (DateRecord)o;
+		for (DateRecord d : this) {
+			if (CalendarHelper.areDatesEqual(find, d)) return true;
+		}
+		
+		return false;
 	}
 }

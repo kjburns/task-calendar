@@ -221,20 +221,20 @@ public class CalendarViewMonthly extends CalendarView {
 
 	@Override
 	protected void scrollDown() {
-		this.calWidget.getSelectedDate().roll(Calendar.MONTH, 1);
-		if (this.calWidget.getSelectedDate().get(Calendar.MONTH) == 0) {
-			this.calWidget.getSelectedDate().roll(Calendar.YEAR, 1);
-		}
-		this.calWidget.setSelectedDate(this.calWidget.getSelectedDate());
+		Calendar date = this.calWidget.getSelectedDate();
+		
+		date.add(Calendar.MONTH, 1);
+
+		this.calWidget.setSelectedDate(date);
 	}
 
 	@Override
 	protected void scrollUp() {
-		this.calWidget.getSelectedDate().roll(Calendar.MONTH, -1);
-		if (this.calWidget.getSelectedDate().get(Calendar.MONTH) == 11) {
-			this.calWidget.getSelectedDate().roll(Calendar.YEAR, -1);
-		}
-		this.calWidget.setSelectedDate(this.calWidget.getSelectedDate());
+		Calendar date = this.calWidget.getSelectedDate();
+		
+		date.add(Calendar.MONTH, -1);
+
+		this.calWidget.setSelectedDate(date);
 	}
 	
 	/**

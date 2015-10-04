@@ -96,6 +96,44 @@ public class CalendarViewWeekly extends CalendarView {
 						int y = CalendarViewWeekly.this.timeToYOrdinate(hr * 3600);
 						g.drawLine((int)cb.getX(), y, (int)(cb.getX() + cb.getWidth()), y);
 					}
+
+					DailyScheduleProvider sp = calWidget.getScheduleProvider_rNull();
+					if (sp == null) return;
+					
+					/*
+					 * Hatch part of day before work, or all day if there is no work 
+					 * today
+					 */
+					int earlyTime = earliestTime;
+					int lateTime;
+					GregorianCalendar today = date;
+					if (sp.isAtWorkOn(today)) {
+						lateTime = sp.getWorkStartTime(today);
+					}
+					else {
+						lateTime = latestTime;
+					}
+					
+					if (earlyTime != lateTime) {
+						hatchInterval(g, earlyTime, lateTime);
+					}
+					
+					/*
+					 * No need to do any more if not at work today
+					 */
+					if (!sp.isAtWorkOn(today)) return;
+					
+					earlyTime = sp.getWorkEndTime(today);
+					lateTime = latestTime;
+					if (earlyTime != lateTime) {
+						hatchInterval(g, earlyTime, lateTime);
+					}
+					
+					if (!sp.isTakingLunchOn(today)) return;
+					earlyTime = sp.getLunchStartTime(today);
+					lateTime = sp.getLunchEndTime(today);
+					
+					hatchInterval(g, earlyTime, lateTime);
 				}
 			};
 			this.contentArea.setLayout(null); // absolute layout
@@ -128,6 +166,25 @@ public class CalendarViewWeekly extends CalendarView {
 			}
 		}
 
+		private void hatchInterval(Graphics g, int earlyTime, int lateTime) {
+			Color oldColor = g.getColor();
+			g.setColor(Color.black);
+			Rectangle2D bounds = g.getClipBounds();
+			int gap = 10;
+			int earlyY = timeToYOrdinate(earlyTime);
+			int lateY = timeToYOrdinate(lateTime);
+			int diff = lateY - earlyY;
+			
+			for (int x = (int)bounds.getMinX(); x <= bounds.getMaxX(); 
+					x += gap) {
+				g.drawLine(x, earlyY, x + diff, lateY);
+			}
+			for (int y = earlyY; y <= lateY; y += gap) {
+				int thisDiff = lateY - y;
+				g.drawLine(0, y, thisDiff, lateY);
+			}
+			g.setColor(oldColor);
+		}
 	}
 
 	/**
@@ -300,14 +357,20 @@ public class CalendarViewWeekly extends CalendarView {
 
 	@Override
 	protected void scrollDown() {
-		this.calWidget.getSelectedDate().add(Calendar.DATE, 7);
-		this.calWidget.setSelectedDate(this.calWidget.getSelectedDate());
+		Calendar date = this.calWidget.getSelectedDate();
+		
+		date.add(Calendar.DATE, 7);
+
+		this.calWidget.setSelectedDate(date);
 	}
 
 	@Override
 	protected void scrollUp() {
-		this.calWidget.getSelectedDate().add(Calendar.DATE, -7);
-		this.calWidget.setSelectedDate(this.calWidget.getSelectedDate());
+		Calendar date = this.calWidget.getSelectedDate();
+		
+		date.add(Calendar.DATE, -7);
+
+		this.calWidget.setSelectedDate(date);
 	}
 
 	@Override
