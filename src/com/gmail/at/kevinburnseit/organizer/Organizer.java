@@ -7,31 +7,49 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.SwingWorker.StateValue;
 
+import com.gmail.at.kevinburnseit.organizer.Appointment.TravelTimeEntry;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.AbortOrContinueSetupDialog.ResultEnum;
 import com.gmail.at.kevinburnseit.organizer.gui.DataFolderDialog;
 import com.gmail.at.kevinburnseit.organizer.gui.DaysOffListEditor;
+import com.gmail.at.kevinburnseit.organizer.gui.ExternalCalendarListEditor;
 import com.gmail.at.kevinburnseit.organizer.gui.HolidayListEditor;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuLabel.MenuLabelAction;
 import com.gmail.at.kevinburnseit.organizer.gui.MenuPane;
 import com.gmail.at.kevinburnseit.organizer.gui.StandardWorkWeekEditor;
 import com.gmail.at.kevinburnseit.swing.DialogResult;
+import com.gmail.at.kevinburnseit.swing.calendar.CalendarEntry;
 import com.gmail.at.kevinburnseit.swing.calendar.CalendarWidget;
 import com.gmail.at.kevinburnseit.swing.calendar.DailyScheduleProvider;
+
+import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.model.component.CalendarComponent;
+import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.util.CompatibilityHints;
 
 /**
  * The main application window for this application.
@@ -52,9 +70,12 @@ public class Organizer extends JFrame
 	private StandardWorkWeek workSchedule;
 	private HolidayRuleCollection holidays = new HolidayRuleCollection();
 	private DaysOffList daysOff = new DaysOffList();
+	private ExternalCalendarCollection extCalendars = new ExternalCalendarCollection();
 	private boolean initialSetupComplete = false;
 	private static final String scheduleFilename = "schedule.xml";
 	private ArrayList<DailyScheduleListener> scheduleListeners = new ArrayList<>();
+	private HashMap<ExternalCalendarDefinition, AppointmentList> appointments = 
+			new HashMap<>();
 	private CalendarWidget calendarWidget;
 	
 	public static void main(String[] args) {
@@ -99,6 +120,8 @@ public class Organizer extends JFrame
 		
 		this.buildUI();
 		
+		this.loadCalendarsFromXml();
+		
 		this.addScheduleListener(new DailyScheduleListener() {
 			@Override
 			public void dailyScheduleChanged(DailyScheduleProvider sched) {
@@ -127,6 +150,41 @@ public class Organizer extends JFrame
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(this, "Could not load days off from file.");
 		}
+		
+		try {
+			this.loadExternalCalendarDefinitions();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(this, 
+					"Could not load external calendar definitions from file.");
+		}
+	}
+
+	private void loadCalendarsFromXml() {
+		for (ExternalCalendarDefinition def : this.extCalendars) {
+			String localFile = def.getUid() + ".xml";
+			String path = (new File(this.appDataPath, localFile)).getAbsolutePath();
+			try {
+				AppointmentList al = new AppointmentList(path);
+				this.appointments.put(def, al);
+				this.calendarWidget.addCalendarEntryProvider(al);
+			} catch (Exception e) {
+				// TODO reload from ics file
+			}
+		}
+		
+		this.calendarWidget.rebuildAllCalendars();
+	}
+
+	private void loadExternalCalendarDefinitions() throws Exception {
+		File f = new File(this.appDataPath, "external-calendars.xml");
+		if (!f.exists()) return;
+		
+		this.extCalendars = new ExternalCalendarCollection(f.getAbsolutePath());
+	}
+	
+	private void saveExternalCalendarDefinitions() throws Exception {
+		File f = new File(this.appDataPath, "external-calendars.xml");
+		this.extCalendars.saveToXml(f.getAbsolutePath());
 	}
 
 	private void loadDaysOffFromDisk() throws Exception {
@@ -208,8 +266,29 @@ public class Organizer extends JFrame
 		});
 		menu.add(daysOffLabel);
 		
-//		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
-//		menu.add(externalCalendarsLabel);
+		MenuLabel externalCalendarsLabel = new MenuLabel("External Calendars...");
+		externalCalendarsLabel.addClickListener(new MenuLabelAction() {
+			@Override
+			public void itemClicked(MenuLabel source) {
+				ExternalCalendarListEditor ecle = 
+						new ExternalCalendarListEditor(extCalendars);
+				ecle.showDialog();
+				try {
+					saveExternalCalendarDefinitions();
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(Organizer.this, 
+							"Unable to save external calendar definitions to disk.");
+				}
+				/* 
+				 * TODO lots of things to do here, like update calendars on screen,
+				 * save calendar references to disk, etc.
+				 */
+				ecle.dispose();
+				
+				doFullRefresh();
+			}
+		});
+		menu.add(externalCalendarsLabel);
 
 		this.calendarWidget = new CalendarWidget();
 		calendarWidget.setScheduleProvider(this);
@@ -222,6 +301,120 @@ public class Organizer extends JFrame
 		this.getContentPane().add(calendarWidget, c);
 		
 		this.pack();
+	}
+
+	protected void doFullRefresh() {
+		SwingWorker<HashMap<ExternalCalendarDefinition, String>, Void> sw = 
+				this.extCalendars.getRemoteCalendarFetcher(appDataPath);
+		sw.execute();
+		sw.addPropertyChangeListener(new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent ev) {
+				if ("state".equals(ev.getPropertyName())) {
+					if (ev.getNewValue().equals(StateValue.DONE)) {
+						try {
+							readIcsFiles(sw.get());
+						} catch (InterruptedException | ExecutionException e) {
+							JOptionPane.showMessageDialog(null, "Refresh failed.");
+						}
+					}
+				}
+			}
+		});
+	}
+	
+	private void readIcsFiles(HashMap<ExternalCalendarDefinition, String> files) {
+		HashMap<ExternalCalendarDefinition, net.fortuna.ical4j.model.Calendar> icsMap =
+				new HashMap<>();
+		CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_PARSING, true);
+		for (ExternalCalendarDefinition key : files.keySet()) {
+			try (FileInputStream fis = new FileInputStream(files.get(key))) {
+				CalendarBuilder builder = new CalendarBuilder();
+				net.fortuna.ical4j.model.Calendar ics = builder.build(fis);
+				icsMap.put(key, ics);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				continue;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				continue;
+			} catch (ParserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				continue;
+			} catch (NullPointerException e) {
+				/*
+				 * An attempt has been made to download this calendar and the 
+				 * download failed. Use null as a placeholder for the expected
+				 * ics calendar so the program knows not to change any items
+				 * from this calendar.
+				 */
+				JOptionPane.showMessageDialog(null, 
+						"Could not download external calendar '" + key.getName() + 
+						"' from the internet.");
+				icsMap.put(key, null);
+			}
+		}
+		
+		this.createCalendarEntries(icsMap);
+	}
+
+	private void createCalendarEntries(HashMap<ExternalCalendarDefinition, 
+			net.fortuna.ical4j.model.Calendar> icsMap) {
+		
+		for (ExternalCalendarDefinition def : icsMap.keySet()) {
+			if (!this.appointments.containsKey(def)) {
+				AppointmentList al = new AppointmentList();
+				this.appointments.put(def, al);
+				this.calendarWidget.addCalendarEntryProvider(al);
+			}
+			
+			net.fortuna.ical4j.model.Calendar cal = icsMap.get(def);
+			AppointmentList al = this.appointments.get(def);
+			
+			for (CalendarComponent c : cal.getComponents()) {
+				if (!(c instanceof VEvent)) continue;
+				VEvent ve = (VEvent)c;
+				String uid = ve.getUid().getValue();
+				Appointment a = al.getByUid_rNull(uid);
+				if (a == null) {
+					if (def.isAlwaysAccept()) {
+						a = new Appointment(ve);
+						al.add(a);
+						for (CalendarEntry tte : a.getTravelEntries()) {
+							al.add(tte);
+						}
+					}
+					else {
+						/*
+						 * TODO add to notification queue for user acceptance
+						 */
+					}
+				}
+				else {
+					a.update(ve);
+					ArrayList<CalendarEntry> keepTravelEntries = a.getTravelEntries();
+					for (TravelTimeEntry tte : al.getTravelEntriesLinkedTo(a)) {
+						if (!keepTravelEntries.contains(tte)) {
+							al.remove(tte);
+						}
+					}
+				}
+			}
+			
+			String filename = "" + def.getUid() + ".xml";
+			String path = (new File(this.appDataPath, filename)).getAbsolutePath();
+			try {
+				al.saveToXml(path);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		
 	}
 
 	private boolean doInitialSetup() {

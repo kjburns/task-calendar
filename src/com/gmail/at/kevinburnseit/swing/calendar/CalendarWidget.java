@@ -5,6 +5,7 @@ import java.awt.ComponentOrientation;
 import java.awt.GridLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
@@ -27,10 +28,9 @@ public class CalendarWidget extends JPanel {
 	private DailyScheduleProvider scheduleProvider = null;
 	private int earliestTimeOnDailyView = 7 * 3600;
 	private int latestTimeOnDailyView = 18 * 3600;
-	
+
 	/**
 	 * Creates a calendar widget.
-	 * @param appInstance
 	 */
 	public CalendarWidget() {
 		this.buildUI();
@@ -46,18 +46,6 @@ public class CalendarWidget extends JPanel {
 		JTabbedPane jtabs = this.tabs.getJTabbedPane();
 		
 		jtabs.add(view.getDisplayName(), view);
-		
-		this.refreshView(view);
-	}
-	
-	/**
-	 * <b>This function still needs to be coded.</b> The intent of this function is
-	 * to get the view to update itself with the contents of all attached
-	 * calendar models.
-	 * @param view The view to update
-	 */
-	protected final void refreshView(CalendarView view) {
-		// TODO Auto-generated method stub
 	}
 	
 	/**
@@ -66,7 +54,9 @@ public class CalendarWidget extends JPanel {
 	public void rebuildAllCalendars() {
 		for (Component c : this.tabs.getJTabbedPane().getComponents()) {
 			if (!(c instanceof CalendarView)) continue;
-			((CalendarView)c).recalculateVisibleRange();
+			CalendarView cv = (CalendarView)c;
+			cv.recalculateVisibleRange();
+			cv.refreshAllEntries();
 		}
 	}
 
@@ -236,5 +226,48 @@ public class CalendarWidget extends JPanel {
 	 */
 	public void setLatestTimeOnDailyView(int latestTimeOnDailyView) {
 		this.latestTimeOnDailyView = latestTimeOnDailyView;
+	}
+	
+	/**
+	 * Adds a calendar entry provider to all views of this calendar. 
+	 * @param cep provider to add
+	 */
+	public void addCalendarEntryProvider(CalendarEntryProvider<?> cep) {
+		if (cep == null) return;
+		
+		for (CalendarView v : this.getAllViews()) {
+			v.addCalendarEntryProvider(cep);
+		}
+	}
+	
+	/**
+	 * Removes a calendar entry provider from all views that it exists on.
+	 * @param cep provider to remove
+	 */
+	public void removeCalendarEntryProvider(CalendarEntryProvider<?> cep) {
+		if (cep == null) return;
+
+		for (CalendarView v : this.getAllViews()) {
+			v.removeCalendarEntryProvider(cep);
+		}
+	}
+	
+	public CalendarViewMonthly getDefaultMonthlyView() {
+		return this.monthCal;
+	}
+	
+	public CalendarViewWeekly getDefaultWeeklyView() {
+		return this.weekCal;
+	}
+	
+	public ArrayList<CalendarView> getAllViews() {
+		ArrayList<CalendarView> ret = new ArrayList<>();
+		
+		for (Component c : this.tabs.getJTabbedPane().getComponents()) {
+			if (!(c instanceof CalendarView)) continue;
+			ret.add((CalendarView)c);
+		}
+		
+		return ret;
 	}
 }

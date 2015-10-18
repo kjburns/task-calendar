@@ -2,10 +2,16 @@ package com.gmail.at.kevinburnseit.swing.calendar;
 
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
 
+import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 
 /**
  * Part of an MVC framework, a view which takes care of the physical calendar and
@@ -17,6 +23,41 @@ import javax.swing.JPanel;
  */
 public abstract class CalendarView extends JPanel {
 	private static final long serialVersionUID = -4785271767869847392L;
+	
+	private final ListDataListener providerChangedListener =
+			new ListDataListener() {
+		@Override
+		public void contentsChanged(ListDataEvent ev) {
+			this.refresh(ev);
+		}
+		@Override
+		public void intervalAdded(ListDataEvent ev) {
+			this.refresh(ev);
+		}
+		@Override
+		public void intervalRemoved(ListDataEvent ev) {
+			this.refresh(ev);
+		}
+		private void refresh(ListDataEvent ev) {
+			@SuppressWarnings("unchecked")
+			CalendarEntryProvider<? extends CalendarEntry> cep =
+					(CalendarEntryProvider<? extends CalendarEntry>)ev.getSource();
+			refreshEntries(cep);
+		}
+	};
+	
+	/**
+	 * A list of {@link CalendarEntryProvider}s that are shown on this view.
+	 */
+	protected HashSet<CalendarEntryProvider<? extends CalendarEntry>> entryProviders 
+			= new HashSet<>();
+	
+	/**
+	 * A map, where the key is a CalendarEntryProvider and the value is an
+	 * ArrayList of graphical event components.
+	 */
+	protected HashMap<CalendarEntryProvider<? extends CalendarEntry>, 
+			ArrayList<JComponent>> eventComponents = new HashMap<>();
 
 	/**
 	 * The {@link CalendarWidget} upon which this view is placed.
@@ -111,4 +152,39 @@ public abstract class CalendarView extends JPanel {
 	 * @return
 	 */
 	public abstract String getDisplayName();
+	
+	public final void addCalendarEntryProvider(
+			CalendarEntryProvider<? extends CalendarEntry> cep) {
+		boolean added = this.entryProviders.add(cep);
+		if (added) {
+			cep.addListDataListener(this.providerChangedListener);
+			this.eventComponents.put(cep, new ArrayList<JComponent>());
+		}
+	}
+	
+	public final void removeCalendarEntryProvider(
+			CalendarEntryProvider<? extends CalendarEntry> cep) {
+		this.entryProviders.add(cep);
+		cep.removeListDataListener(this.providerChangedListener);
+		this.eventComponents.remove(cep);
+	}
+	
+	/**
+	 * Instructs the view to discard its existing graphical entries for a particular
+	 * calendar entry provider and rebuild and redisplay them.
+	 * @param cep The calendar entry provider to refresh 
+	 */
+	public abstract void refreshEntries(
+			CalendarEntryProvider<? extends CalendarEntry> cep);
+
+	/**
+	 * Instructs the view to discard its existing graphical entries for all
+	 * calendar entry providers and rebuild and redisplay them.
+	 */
+	public final void refreshAllEntries() {
+		for (CalendarEntryProvider<? extends CalendarEntry> cep : 
+				this.entryProviders) {
+			this.refreshEntries(cep);
+		}
+	}
 }

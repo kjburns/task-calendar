@@ -2,17 +2,26 @@ package com.gmail.at.kevinburnseit.swing.calendar;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.function.Predicate;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SpringLayout;
@@ -29,7 +38,84 @@ import javax.swing.border.Border;
  */
 public class CalendarViewWeekly extends CalendarView {
 	private static final long serialVersionUID = 1845297077193705145L;
+	
+	private class Entry extends JPanel {
+		private Day parent;
+		private CalendarEntry ce;
+		
+		private Entry() {
+			BoxLayout bl = new BoxLayout(this, BoxLayout.PAGE_AXIS);
+			this.setLayout(bl);
+			this.setOpaque(true);
+			this.setBorder(BorderFactory.createLineBorder(Color.black));
+		}
+		
+		public Entry(Day parent, CalendarEntry ce) {
+			this();
+			this.parent = parent;
+			this.ce = ce;
+			
+			JLabel label;
+			label = new JLabel();
+			label.setText("<html>" +
+					CalendarHelper.militaryTimeFormatter.format(
+							ce.getStartTime().getTime()) +
+					" " +
+					ce.getTitle() + "</html>");
+			this.add(label);
+			
+			resizeListener = new ComponentAdapter() {
+				@Override
+				public void componentResized(ComponentEvent e) {
+					updateDimensions();
+				}
+				@Override
+				public void componentShown(ComponentEvent e) {
+					updateDimensions();
+				}
+			};
+		}
 
+		protected void updateDimensions() {
+			Insets parentInsets = this.getParent().getInsets();
+			Rectangle parentBounds = this.getParent().getBounds();
+			
+			int startTime = Math.max(earliestTime, 
+					this.timeToInt(this.ce.getStartTime()));
+			int endTime = this.timeToInt(this.ce.getEndTime());
+			
+			int lt = parentBounds.x + parentInsets.left;
+			int rt = parentBounds.x + parentBounds.width - 
+					parentInsets.right - parentInsets.left - 3;
+			int top = timeToYOrdinate(startTime);
+			int bottom = timeToYOrdinate(endTime);
+			
+			this.setBounds(lt, top, rt - lt, bottom - top);
+			this.revalidate();
+		}
+		
+		private int timeToInt(GregorianCalendar time) {
+			return time.get(Calendar.HOUR_OF_DAY) * 3600 +
+					time.get(Calendar.MINUTE) * 60 +
+					time.get(Calendar.SECOND);
+		}
+
+		private static final long serialVersionUID = 5186638636640902360L;
+		private ComponentAdapter resizeListener;
+
+		@Override
+		public void removeNotify() {
+			super.removeNotify();
+			this.parent.removeComponentListener(this.resizeListener);
+		}
+
+		@Override
+		public void addNotify() {
+			super.addNotify();
+			this.parent.addComponentListener(this.resizeListener);
+		}
+	}
+	
 	/**
 	 * A day in the weekly view.
 	 * @author Kevin J. Burns
@@ -184,6 +270,30 @@ public class CalendarViewWeekly extends CalendarView {
 				g.drawLine(0, y, thisDiff, lateY);
 			}
 			g.setColor(oldColor);
+		}
+
+		public ArrayList<Entry> createGraphicalEntries(ArrayList<CalendarEntry> list) {
+			ArrayList<Entry> entriesToShow = new ArrayList<>();
+			ArrayList<Entry> ret = new ArrayList<>();
+			
+			for (Component c : this.contentArea.getComponents()) {
+				if (!(c instanceof Entry)) continue;
+				entriesToShow.add((Entry)c);
+			}
+			for (Entry e : entriesToShow) {
+				this.remove(e);
+			}
+			
+			for (CalendarEntry ce : list) {
+				entriesToShow.add(new Entry(this, ce));
+			}
+			
+			for (Entry e : entriesToShow) {
+				this.contentArea.add(e);
+				ret.add(e);
+			}
+			
+			return ret;
 		}
 	}
 
@@ -362,6 +472,8 @@ public class CalendarViewWeekly extends CalendarView {
 		date.add(Calendar.DATE, 7);
 
 		this.calWidget.setSelectedDate(date);
+		this.refreshAllEntries();
+		this.revalidate();
 	}
 
 	@Override
@@ -371,6 +483,8 @@ public class CalendarViewWeekly extends CalendarView {
 		date.add(Calendar.DATE, -7);
 
 		this.calWidget.setSelectedDate(date);
+		this.refreshAllEntries();
+		this.revalidate();
 	}
 
 	@Override
@@ -380,9 +494,14 @@ public class CalendarViewWeekly extends CalendarView {
 		
 		this.startOfVisibleRange = (GregorianCalendar)sel.clone();
 		this.startOfVisibleRange.add(Calendar.DAY_OF_MONTH, -normalDOW);
+		this.startOfVisibleRange.set(Calendar.HOUR_OF_DAY, 0);
+		this.startOfVisibleRange.set(Calendar.MINUTE, 0);
+		this.startOfVisibleRange.set(Calendar.SECOND, 0);
+		this.startOfVisibleRange.set(Calendar.MILLISECOND, 0);
 		
-		this.endOfVisibleRange = (GregorianCalendar)this.startOfVisibleRange.clone();
-		this.endOfVisibleRange.add(Calendar.DAY_OF_MONTH, 6);
+		this.endOfVisibleRange.setTime(this.startOfVisibleRange.getTime());
+		this.endOfVisibleRange.add(Calendar.DAY_OF_MONTH, 7);
+		this.endOfVisibleRange.add(Calendar.MILLISECOND, -1);
 		
 		this.rebuildCalendar();
 	}
@@ -446,5 +565,51 @@ public class CalendarViewWeekly extends CalendarView {
 		time += this.earliestTime;
 		
 		return time;
+	}
+
+	@Override
+	public void refreshEntries(CalendarEntryProvider<? extends CalendarEntry> cep) {
+		for (JComponent c : this.eventComponents.get(cep)) {
+			c.getParent().remove(c);
+		}
+		
+		this.eventComponents.get(cep).clear();
+		
+		ArrayList<CalendarEntry> entriesToDraw = new ArrayList<>();
+		Predicate<CalendarEntry> withinPredicate = 
+				CalendarEntryProvider.getPredicateForTimeRange(
+						startOfVisibleRange, endOfVisibleRange);
+		for (CalendarEntry ce : cep) {
+			if (withinPredicate.test(ce)) {
+				entriesToDraw.add(ce);
+			}
+		}
+		
+		for (Day day : this.dayPanels.values()) {
+			/*
+			 * TODO figure out a way to colour the entries, or not. It's not all
+			 * that important right now. 
+			 */
+			GregorianCalendar start = new GregorianCalendar();
+			start.setTime(this.startOfVisibleRange.getTime());
+			start.add(Calendar.DAY_OF_MONTH, day.place);
+			
+			GregorianCalendar end = new GregorianCalendar();
+			end.setTime(start.getTime());
+			end.add(Calendar.HOUR_OF_DAY, 24);
+			end.add(Calendar.MILLISECOND, -1);
+			
+			ArrayList<CalendarEntry> todaysEvents = new ArrayList<>();
+			Predicate<CalendarEntry> dayPredicate = 
+					CalendarEntryProvider.getPredicateForTimeRange(start, end);
+			for (CalendarEntry ce : entriesToDraw) {
+				if (dayPredicate.test(ce)) {
+					todaysEvents.add(ce);
+				}
+			}
+			
+			ArrayList<Entry> entries = day.createGraphicalEntries(todaysEvents);
+			this.eventComponents.get(cep).addAll(entries);
+		}
 	}
 }

@@ -1,15 +1,21 @@
 package com.gmail.at.kevinburnseit.swing.calendar;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.function.Predicate;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SpringLayout;
@@ -48,7 +54,7 @@ public class CalendarViewMonthly extends CalendarView {
 	 * @author Kevin J. Burns
 	 *
 	 */
-	private class Day extends JPanel {
+	protected class Day extends JPanel {
 		private static final long serialVersionUID = 5898330689560812820L;
 		
 		private int day;
@@ -110,6 +116,56 @@ public class CalendarViewMonthly extends CalendarView {
 			else {
 				this.setBorder(this.normalBorder);
 			}
+		}
+
+		public ArrayList<Entry> createGraphicalEntries(ArrayList<CalendarEntry> list) {
+			ArrayList<Entry> entriesToShow = new ArrayList<>();
+			ArrayList<Entry> ret = new ArrayList<>();
+			
+			for (Component c : this.getComponents()) {
+				if (!(c instanceof Entry)) continue;
+				entriesToShow.add((Entry)c);
+			}
+			for (Entry e : entriesToShow) {
+				this.remove(e);
+			}
+			
+			for (CalendarEntry ce : list) {
+				entriesToShow.add(new Entry(ce));
+			}
+			
+			Entry nullEntry = new Entry(null);
+			Collections.sort(entriesToShow, nullEntry.sorter);
+			
+			for (Entry e : entriesToShow) {
+				this.add(e);
+				ret.add(e);
+			}
+			
+			return ret;
+		}
+	}
+	
+	private class Entry extends JLabel {
+		private static final long serialVersionUID = 5187107495759409796L;
+
+		private CalendarEntry event;
+		
+		public final Comparator<Entry> sorter = new Comparator<Entry>() {
+			@Override
+			public int compare(Entry x, Entry y) {
+				return x.event.getStartTime().compareTo(y.event.getStartTime());
+			}			
+		};
+		
+		public Entry(CalendarEntry event) {
+			this.event = event;
+			if (this.event == null) return;
+			this.setOpaque(true);
+			this.setText(CalendarHelper.militaryTimeFormatter.format(
+					this.event.getStartTime().getTime()) + " " + 
+					this.event.getTitle());
+			this.setToolTipText(this.getText());
 		}
 	}
 	
@@ -193,6 +249,8 @@ public class CalendarViewMonthly extends CalendarView {
 			this.gridArea.add(dayPanel);
 			this.dayPanels.put(i, dayPanel);
 		}
+		
+		this.refreshAllEntries();
 	}
 
 	@Override
@@ -205,9 +263,11 @@ public class CalendarViewMonthly extends CalendarView {
 				(GregorianCalendar)this.calWidget.getSelectedDate();
 		int mo = selDate.get(Calendar.MONTH);
 		int yr = selDate.get(Calendar.YEAR);
-		int lastDay = CalendarHelper.getDaysInMonth(mo,	selDate.isLeapYear(yr));
-		this.startOfVisibleRange.set(yr, mo, 1);
-		this.endOfVisibleRange.set(yr, mo, lastDay);
+		this.startOfVisibleRange.clear();
+		this.startOfVisibleRange.set(yr, mo, 1, 0, 0, 0);
+		this.endOfVisibleRange.setTime(this.startOfVisibleRange.getTime());
+		this.endOfVisibleRange.add(Calendar.MONTH, 1);
+		this.endOfVisibleRange.add(Calendar.MILLISECOND, -1);
 	}
 
 	@Override
@@ -226,6 +286,7 @@ public class CalendarViewMonthly extends CalendarView {
 		date.add(Calendar.MONTH, 1);
 
 		this.calWidget.setSelectedDate(date);
+		this.refreshAllEntries();
 	}
 
 	@Override
@@ -235,6 +296,7 @@ public class CalendarViewMonthly extends CalendarView {
 		date.add(Calendar.MONTH, -1);
 
 		this.calWidget.setSelectedDate(date);
+		this.refreshAllEntries();
 	}
 	
 	/**
@@ -262,5 +324,51 @@ public class CalendarViewMonthly extends CalendarView {
 				this.startOfVisibleRange.get(Calendar.MONTH), dy);
 		this.calWidget.setSelectedDate(c);
 		this.dayPanels.get(dy).setSelected(true);
+	}
+
+	@Override
+	public void refreshEntries(CalendarEntryProvider<? extends CalendarEntry> cep) {
+		for (JComponent c : this.eventComponents.get(cep)) {
+			c.getParent().remove(c);
+		}
+		
+		this.eventComponents.get(cep).clear();
+		
+		ArrayList<CalendarEntry> entriesToDraw = new ArrayList<>();
+		Predicate<CalendarEntry> withinPredicate = 
+				CalendarEntryProvider.getPredicateForTimeRange(
+						startOfVisibleRange, endOfVisibleRange);
+		for (CalendarEntry ce : cep) {
+			if (withinPredicate.test(ce)) {
+				entriesToDraw.add(ce);
+			}
+		}
+		
+		for (Day day : this.dayPanels.values()) {
+			/*
+			 * TODO figure out a way to colour the entries, or not. It's not all
+			 * that important right now. 
+			 */
+			GregorianCalendar start = new GregorianCalendar();
+			start.setTime(this.startOfVisibleRange.getTime());
+			start.set(Calendar.DAY_OF_MONTH, day.day);
+			
+			GregorianCalendar end = new GregorianCalendar();
+			end.setTime(start.getTime());
+			end.add(Calendar.HOUR_OF_DAY, 24);
+			end.add(Calendar.MILLISECOND, -1);
+			
+			ArrayList<CalendarEntry> todaysEvents = new ArrayList<>();
+			Predicate<CalendarEntry> dayPredicate = 
+					CalendarEntryProvider.getPredicateForTimeRange(start, end);
+			for (CalendarEntry ce : entriesToDraw) {
+				if (dayPredicate.test(ce)) {
+					todaysEvents.add(ce);
+				}
+			}
+			
+			ArrayList<Entry> entries = day.createGraphicalEntries(todaysEvents);
+			this.eventComponents.get(cep).addAll(entries);
+		}
 	}
 }

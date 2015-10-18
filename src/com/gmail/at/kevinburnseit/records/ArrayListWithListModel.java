@@ -3,6 +3,7 @@ package com.gmail.at.kevinburnseit.records;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
@@ -19,7 +20,7 @@ import javax.swing.event.ListDataListener;
 public class ArrayListWithListModel<E> extends ArrayList<E> implements ListModel<E> {
 	private static final long serialVersionUID = 5988511857016133366L;
 
-	private ArrayList<ListDataListener> listeners = new ArrayList<>();
+	private HashSet<ListDataListener> listeners = new HashSet<>();
 	
 	@Override
 	public void addListDataListener(ListDataListener l) {

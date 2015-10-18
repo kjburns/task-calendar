@@ -2,10 +2,7 @@ package com.gmail.at.kevinburnseit.organizer;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 

@@ -1,5 +1,6 @@
 package com.gmail.at.kevinburnseit.swing.calendar;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -175,4 +176,7 @@ public class CalendarHelper {
 		
 		return true;
 	}
+
+	public static final SimpleDateFormat militaryTimeFormatter =
+			new SimpleDateFormat("HHmm");
 }
